@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import 'package:rssreader/models/feeds.dart';
-import 'package:rssreader/models/saved_articles.dart';
+import 'package:rssreader/models/articles.dart';
 import 'package:rssreader/screens/articles.dart';
 
 void main() {
@@ -14,7 +14,7 @@ void main() {
           create: (context) => Feeds(),
         ),
         ChangeNotifierProvider(
-          create: (context) => SavedArticles(),
+          create: (context) => Articles(),
         )
       ],
       child: App(),

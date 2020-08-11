@@ -1,63 +1,78 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 import 'package:pull_to_refresh/pull_to_refresh.dart';
-import 'package:webfeed/webfeed.dart';
 
 import 'package:rssreader/models/article.dart';
-import 'package:rssreader/models/feed.dart';
-import 'package:rssreader/models/feeds.dart';
-import 'package:rssreader/models/saved_articles.dart';
+import 'package:rssreader/models/articles.dart';
 import 'package:rssreader/screens/article.dart';
 import 'package:rssreader/screens/feeds.dart';
 
-ListView buildArticleListView(List<Article> articles, Function onLongPress) {
-  return ListView.builder(
-    itemBuilder: (context, i) {
-      if (i < articles.length) {
-        Article article = articles[i];
-        Widget image;
-        if (article.imageUrl != null) {
-          image = FadeInImage.assetNetwork(
-            placeholder: 'assets/images/transparent.png',
-            image: article.imageUrl,
-            width: 60,
-            height: 60,
-          );
-        }
+class ArticlesListView extends StatelessWidget {
+  final RefreshController _refreshController =
+    RefreshController(initialRefresh: true);
+  final String filter;
 
-        return ListTile(
-          leading: image,
-          title: Text(article.title),
-          subtitle: Text(article.feedTitle),
-          trailing: Text(article.getDateDurationString()),
-          selected: article.isSaved,
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) =>
-                  ArticlePage(article.link, article.title)
-              ),
+  ArticlesListView(this.filter);
+
+  @override
+  Widget build(BuildContext context) {
+    Articles articlesProvider = Provider.of<Articles>(context);
+    List<Article> articles = articlesProvider.articles;
+    articles = articles.where((article) =>
+        article.title.toLowerCase().contains(filter.toLowerCase())
+    ).toList();
+
+    return SmartRefresher(
+      enablePullDown: true,
+      controller: _refreshController,
+      onRefresh: () {
+        Provider.of<Articles>(context, listen: false).load(context);
+        _refreshController.refreshCompleted();
+      },
+      child: ListView.builder(
+        itemCount: articles.length,
+        itemBuilder: (context, i) {
+          Article article = articles[i];
+          Widget image;
+          if (article.imageUrl != null) {
+            image = FadeInImage.assetNetwork(
+              placeholder: 'assets/images/transparent.png',
+              image: article.imageUrl,
+              width: 60,
+              height: 60,
             );
-          },
-          onLongPress: () {
-            onLongPress(i);
-          },
-        );
-      } else {
-        return null;
-      }
-    }
-  );
+          }
+
+          return ListTile(
+            leading: image,
+            title: Text(article.title),
+            subtitle: Text(article.feedTitle),
+            trailing: Text(article.getDateDurationString()),
+            selected: article.isSaved,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) =>
+                    ArticlePage(article.link, article.title)
+                ),
+              );
+            },
+            onLongPress: () {
+              article.isSaved = !article.isSaved;
+              if (article.isSaved) {
+                articlesProvider.add(article);
+              } else {
+                articlesProvider.remove(article);
+              }
+            },
+          );
+        },
+      ),
+    );
+  }
 }
 
 class ArticlesSearch extends SearchDelegate {
-  final List<Article> articles;
-
-  ArticlesSearch(this.articles);
-
   @override
   ThemeData appBarTheme(BuildContext context) {
     return Theme.of(context);
@@ -87,10 +102,7 @@ class ArticlesSearch extends SearchDelegate {
 
   @override
   Widget buildResults(BuildContext context) {
-    List<Article> filteredArticles = articles.where((article) =>
-        article.title.toLowerCase().contains(query.toLowerCase())
-    ).toList();
-    return buildArticleListView(filteredArticles, (_) {});
+    return ArticlesListView(query);
   }
 
   @override
@@ -108,46 +120,6 @@ class ArticlesPage extends StatefulWidget {
 }
 
 class ArticlesPageState extends State<ArticlesPage> {
-  List<Article> articles = [];
-
-  RefreshController _refreshController =
-    RefreshController(initialRefresh: true);
-
-  void _onRefresh() async {
-    articles.clear();
-    SavedArticles savedArticlesProvider =
-      Provider.of<SavedArticles>(context, listen: false);
-    await savedArticlesProvider.load();
-    List<Article> savedArticles = savedArticlesProvider.getAll();
-
-    Feeds feedsProvider = Provider.of<Feeds>(context, listen: false);
-    await feedsProvider.load();
-    for (Feed feed in feedsProvider.getAll()) {
-      print("refreshing feed: " + feed.url);
-      http.Response response = await http.get(feed.url);
-      RssFeed rssFeed = RssFeed.parse(utf8.decode(response.bodyBytes));
-      rssFeed.items.forEach((element) {
-        if (!savedArticles.any((savedArticle) =>
-              savedArticle.link == element.link)) {
-          Article article = Article(
-            element.title,
-            element.link,
-            element.media?.contents != null && element.media.contents.isNotEmpty ?
-            element.media.contents[0].url : null,
-            element.pubDate,
-            feed.title,
-          );
-          articles.add(article);
-        }
-      });
-    }
-    setState(() {
-      articles.sort((a, b) => b.date.compareTo(a.date));
-      articles.insertAll(0, savedArticles);
-    });
-    _refreshController.refreshCompleted();
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -157,7 +129,7 @@ class ArticlesPageState extends State<ArticlesPage> {
           IconButton(
             icon: const Icon(Icons.search),
             onPressed: () {
-              showSearch(context: context, delegate: ArticlesSearch(articles));
+              showSearch(context: context, delegate: ArticlesSearch());
             },
           )
         ],
@@ -165,23 +137,7 @@ class ArticlesPageState extends State<ArticlesPage> {
       drawer: Drawer(
         child: FeedsPage(),
       ),
-      body: SmartRefresher(
-        enablePullDown: true,
-        controller: _refreshController,
-        onRefresh: _onRefresh,
-        child: buildArticleListView(articles, (int i) {
-          setState(() {
-            articles[i].isSaved = !articles[i].isSaved;
-          });
-          SavedArticles savedArticlesProvider =
-            Provider.of<SavedArticles>(context, listen: false);
-          if (articles[i].isSaved) {
-            savedArticlesProvider.add(articles[i]);
-          } else {
-            savedArticlesProvider.remove(articles[i]);
-          }
-        }),
-      ),
+      body: ArticlesListView(""),
     );
   }
 }
