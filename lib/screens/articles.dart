@@ -12,6 +12,89 @@ import 'package:rssreader/models/feeds.dart';
 import 'package:rssreader/screens/article.dart';
 import 'package:rssreader/screens/feeds.dart';
 
+ListView buildArticleListView(List<Article> articles) {
+  return ListView.builder(
+    itemBuilder: (context, i) {
+      if (i < articles.length) {
+        Article article = articles[i];
+        Widget image;
+        if (article.imageUrl != null) {
+          image = FadeInImage.assetNetwork(
+            placeholder: 'assets/images/transparent.png',
+            image: article.imageUrl,
+            width: 60,
+            height: 60,
+          );
+        }
+
+        return ListTile(
+          leading: image,
+          title: Text(article.title),
+          subtitle: Text(article.feed.title),
+          trailing: Text(article.getDateDurationString()),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) =>
+                  ArticlePage(article.link, article.title)
+              ),
+            );
+          },
+        );
+      } else {
+        return null;
+      }
+    }
+  );
+}
+
+class ArticlesSearch extends SearchDelegate {
+  final List<Article> articles;
+
+  ArticlesSearch(this.articles);
+
+  @override
+  ThemeData appBarTheme(BuildContext context) {
+    return Theme.of(context);
+  }
+
+  @override
+  List<Widget> buildActions(BuildContext context) {
+    return [
+      IconButton(
+        icon: Icon(Icons.clear),
+        onPressed: () {
+          query = "";
+        },
+      )
+    ];
+  }
+
+  @override
+  Widget buildLeading(BuildContext context) {
+    return IconButton(
+      icon: Icon(Icons.arrow_back),
+      onPressed: () {
+        Navigator.pop(context);
+      },
+    );
+  }
+
+  @override
+  Widget buildResults(BuildContext context) {
+    List<Article> filteredArticles = articles.where((article) =>
+        article.title.toLowerCase().contains(query.toLowerCase())
+    ).toList();
+    return buildArticleListView(filteredArticles);
+  }
+
+  @override
+  Widget buildSuggestions(BuildContext context) {
+    return buildResults(context);
+  }
+  
+}
+
 class ArticlesPage extends StatefulWidget {
   @override
   ArticlesPageState createState() {
@@ -55,6 +138,14 @@ class ArticlesPageState extends State<ArticlesPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Articles'),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.search),
+            onPressed: () {
+              showSearch(context: context, delegate: ArticlesSearch(articles));
+            },
+          )
+        ],
       ),
       drawer: Drawer(
         child: FeedsPage(),
@@ -63,39 +154,7 @@ class ArticlesPageState extends State<ArticlesPage> {
         enablePullDown: true,
         controller: _refreshController,
         onRefresh: _onRefresh,
-        child: ListView.builder(
-          itemBuilder: (context, i) {
-            if (i < articles.length) {
-              Article article = articles[i];
-              Widget image;
-              if (article.imageUrl != null) {
-                image = FadeInImage.assetNetwork(
-                  placeholder: 'assets/images/transparent.png',
-                  image: article.imageUrl,
-                  width: 60,
-                  height: 60,
-                );
-              }
-
-              return ListTile(
-                leading: image,
-                title: Text(article.title),
-                subtitle: Text(article.feed.title),
-                trailing: Text(article.getDateDurationString()),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) =>
-                        ArticlePage(article.link, article.title)
-                    ),
-                  );
-                },
-              );
-            } else {
-              return null;
-            }
-          },
-        ),
+        child: buildArticleListView(articles),
       ),
     );
   }

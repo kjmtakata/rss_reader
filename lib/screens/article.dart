@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_webview_plugin/flutter_webview_plugin.dart';
 import 'package:share/share.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class ArticlePage extends StatelessWidget {
   final String url;
@@ -12,10 +13,10 @@ class ArticlePage extends StatelessWidget {
   Widget build(BuildContext context) {
 
     return WebviewScaffold(
-      url: this.url,
+      url: url,
       withJavascript: false,
       appBar: AppBar(
-        title: Text(this.title),
+        title: Text(title),
         actions: [
           IconButton(
             icon: const Icon(Icons.share),
@@ -23,6 +24,12 @@ class ArticlePage extends StatelessWidget {
               Share.share(url);
             },
           ),
+          IconButton(
+            icon: const Icon(Icons.launch),
+            onPressed: () {
+              launch(url);
+            },
+          )
         ],
       ),
     );
