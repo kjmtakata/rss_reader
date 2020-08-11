@@ -9,10 +9,11 @@ import 'package:webfeed/webfeed.dart';
 import 'package:rssreader/models/article.dart';
 import 'package:rssreader/models/feed.dart';
 import 'package:rssreader/models/feeds.dart';
+import 'package:rssreader/models/saved_articles.dart';
 import 'package:rssreader/screens/article.dart';
 import 'package:rssreader/screens/feeds.dart';
 
-ListView buildArticleListView(List<Article> articles) {
+ListView buildArticleListView(List<Article> articles, Function onLongPress) {
   return ListView.builder(
     itemBuilder: (context, i) {
       if (i < articles.length) {
@@ -30,8 +31,9 @@ ListView buildArticleListView(List<Article> articles) {
         return ListTile(
           leading: image,
           title: Text(article.title),
-          subtitle: Text(article.feed.title),
+          subtitle: Text(article.feedTitle),
           trailing: Text(article.getDateDurationString()),
+          selected: article.isSaved,
           onTap: () {
             Navigator.push(
               context,
@@ -39,6 +41,9 @@ ListView buildArticleListView(List<Article> articles) {
                   ArticlePage(article.link, article.title)
               ),
             );
+          },
+          onLongPress: () {
+            onLongPress(i);
           },
         );
       } else {
@@ -85,7 +90,7 @@ class ArticlesSearch extends SearchDelegate {
     List<Article> filteredArticles = articles.where((article) =>
         article.title.toLowerCase().contains(query.toLowerCase())
     ).toList();
-    return buildArticleListView(filteredArticles);
+    return buildArticleListView(filteredArticles, (_) {});
   }
 
   @override
@@ -104,31 +109,41 @@ class ArticlesPage extends StatefulWidget {
 
 class ArticlesPageState extends State<ArticlesPage> {
   List<Article> articles = [];
+
   RefreshController _refreshController =
     RefreshController(initialRefresh: true);
 
   void _onRefresh() async {
+    articles.clear();
+    SavedArticles savedArticlesProvider =
+      Provider.of<SavedArticles>(context, listen: false);
+    await savedArticlesProvider.load();
+    List<Article> savedArticles = savedArticlesProvider.getAll();
+
     Feeds feedsProvider = Provider.of<Feeds>(context, listen: false);
     await feedsProvider.load();
-    articles.clear();
     for (Feed feed in feedsProvider.getAll()) {
       print("refreshing feed: " + feed.url);
       http.Response response = await http.get(feed.url);
       RssFeed rssFeed = RssFeed.parse(utf8.decode(response.bodyBytes));
       rssFeed.items.forEach((element) {
-        Article article = Article(
-          element.title,
-          element.link,
-          element.media?.contents != null && element.media.contents.isNotEmpty ?
+        if (!savedArticles.any((savedArticle) =>
+              savedArticle.link == element.link)) {
+          Article article = Article(
+            element.title,
+            element.link,
+            element.media?.contents != null && element.media.contents.isNotEmpty ?
             element.media.contents[0].url : null,
-          element.pubDate,
-          feed,
-        );
-        articles.add(article);
+            element.pubDate,
+            feed.title,
+          );
+          articles.add(article);
+        }
       });
     }
     setState(() {
       articles.sort((a, b) => b.date.compareTo(a.date));
+      articles.insertAll(0, savedArticles);
     });
     _refreshController.refreshCompleted();
   }
@@ -137,10 +152,10 @@ class ArticlesPageState extends State<ArticlesPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Articles'),
+        title: const Text("Articles"),
         actions: [
           IconButton(
-            icon: Icon(Icons.search),
+            icon: const Icon(Icons.search),
             onPressed: () {
               showSearch(context: context, delegate: ArticlesSearch(articles));
             },
@@ -154,7 +169,18 @@ class ArticlesPageState extends State<ArticlesPage> {
         enablePullDown: true,
         controller: _refreshController,
         onRefresh: _onRefresh,
-        child: buildArticleListView(articles),
+        child: buildArticleListView(articles, (int i) {
+          setState(() {
+            articles[i].isSaved = !articles[i].isSaved;
+          });
+          SavedArticles savedArticlesProvider =
+            Provider.of<SavedArticles>(context, listen: false);
+          if (articles[i].isSaved) {
+            savedArticlesProvider.add(articles[i]);
+          } else {
+            savedArticlesProvider.remove(articles[i]);
+          }
+        }),
       ),
     );
   }

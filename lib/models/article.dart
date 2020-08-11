@@ -1,19 +1,19 @@
 import 'package:intl/intl.dart';
 
-import 'package:rssreader/models/feed.dart';
-
 class Article {
   String title;
   String link;
   String imageUrl;
   DateTime date; // local time
-  Feed feed;
+  String feedTitle;
+  bool isSaved = false;
 
-  Article(String title, String link, String imageUrl, String date, Feed feed) {
+  Article(String title, String link, String imageUrl,
+      String date, String feedTitle) {
     this.title = title;
     this.link = link;
     this.imageUrl = imageUrl;
-    this.feed = feed;
+    this.feedTitle = feedTitle;
 
     DateFormat dateFormat = new DateFormat("EEE, dd MMM yyyy HH:mm:ss");
     this.date = dateFormat.parseUTC(date);
@@ -46,4 +46,21 @@ class Article {
       return duration.inSeconds.toString() + "s";
     }
   }
+
+  Article.fromJson(Map<String, dynamic> json)
+    : title = json['title'],
+      link = json['link'],
+      imageUrl = json['image_url'],
+      date = DateTime.parse(json['date']),
+      feedTitle = json['feed_title'],
+      isSaved = true;
+
+  Map<String, dynamic> toJson() =>
+  {
+    'title': title,
+    'link': link,
+    'image_url': imageUrl,
+    'date': date.toString(),
+    'feed_title': feedTitle,
+  };
 }

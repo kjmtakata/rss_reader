@@ -29,7 +29,7 @@ class ArticlePage extends StatelessWidget {
             onPressed: () {
               launch(url);
             },
-          )
+          ),
         ],
       ),
     );

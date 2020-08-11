@@ -1,33 +1,44 @@
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:rssreader/models/feed.dart';
 
 class Feeds extends ChangeNotifier {
+  static final String feedsKey = "feeds";
   List<Feed> feeds = [];
 
   Future load() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
     feeds.clear();
+    SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.reload();
-    for (String feedUrl in prefs.getKeys()) {
-      String feedTitle = prefs.getString(feedUrl);
-      feeds.add(Feed(feedUrl, feedTitle));
+    if (!prefs.containsKey(feedsKey)) {
+      await prefs.setStringList(feedsKey, []);
+    }
+    for (String feedJson in prefs.getStringList(feedsKey)) {
+      feeds.add(Feed.fromJson(jsonDecode(feedJson)));
     }
     notifyListeners();
   }
 
   Future add(Feed feed) async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setString(feed.url, feed.title);
     feeds.add(feed);
-    notifyListeners();
+    await save();
   }
 
   Future remove(Feed feed) async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.remove(feed.url);
     feeds.remove(feed);
+    await save();
+  }
+
+  Future save() async {
+    List<String> encodedFeeds = [];
+    for (Feed feed in feeds) {
+      encodedFeeds.add(jsonEncode(feed));
+    }
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList(feedsKey, encodedFeeds);
     notifyListeners();
   }
 

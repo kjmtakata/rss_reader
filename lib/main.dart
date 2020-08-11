@@ -3,12 +3,20 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import 'package:rssreader/models/feeds.dart';
+import 'package:rssreader/models/saved_articles.dart';
 import 'package:rssreader/screens/articles.dart';
 
 void main() {
   runApp(
-    ChangeNotifierProvider(
-      create: (context) => Feeds(),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(
+          create: (context) => Feeds(),
+        ),
+        ChangeNotifierProvider(
+          create: (context) => SavedArticles(),
+        )
+      ],
       child: App(),
     ),
   );
