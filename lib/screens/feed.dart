@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -22,12 +23,33 @@ class FeedPageState extends State<FeedPage> {
       appBar: AppBar(
         title: const Text("Add Feed"),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.add),
-            onPressed: () async {
-              http.Response response = await http.get(feedUrlController.text);
-              RssFeed rssFeed = RssFeed.parse(utf8.decode(response.bodyBytes));
-              Navigator.pop(context, Feed(feedUrlController.text, rssFeed.title));
+          Builder(
+            builder: (BuildContext context) {
+              return IconButton(
+                icon: const Icon(Icons.add),
+                onPressed: () async {
+                  String errorMessage;
+                  try {
+                    http.Response response = await http.get(feedUrlController.text);
+                    RssFeed rssFeed = RssFeed.parse(utf8.decode(response.bodyBytes));
+                    Navigator.pop(context, Feed(feedUrlController.text, rssFeed.title));
+                  } on ArgumentError catch (e) {
+                    errorMessage = e.message;
+                  } on SocketException catch (e) {
+                    errorMessage = e.message;
+                  } on FormatException catch (e) {
+                    errorMessage = "Invalid RSS feed";
+                  } catch (e) {
+                    errorMessage = e.toString();
+                  } finally {
+                    if (errorMessage != null) {
+                      Scaffold.of(context).showSnackBar(SnackBar(
+                        content: Text(errorMessage),
+                      ));
+                    }
+                  }
+                },
+              );
             },
           ),
         ],
