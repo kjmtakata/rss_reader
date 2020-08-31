@@ -43,18 +43,27 @@ class ArticlesListView extends StatelessWidget {
             );
           }
 
+          List<Widget> trailingWidgets = [
+            Text(article.getDateDurationString()),
+          ];
+          if (article.isSaved) {
+            trailingWidgets.insert(0, Icon(Icons.favorite));
+          }
+
           return ListTile(
             leading: image,
             title: Text(article.title),
             subtitle: Text(article.feedTitle),
-            trailing: Text(article.getDateDurationString()),
+            trailing: Wrap(
+              spacing: 5,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: trailingWidgets,
+            ),
             selected: article.isSaved,
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) =>
-                    ArticlePage(article.link, article.title)
-                ),
+                MaterialPageRoute(builder: (context) => ArticlePage(article)),
               );
             },
             onLongPress: () {

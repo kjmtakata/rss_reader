@@ -1,35 +1,64 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_webview_plugin/flutter_webview_plugin.dart';
+import 'package:provider/provider.dart';
 import 'package:share/share.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-class ArticlePage extends StatelessWidget {
-  final String url;
-  final String title;
+import 'package:rssreader/models/article.dart';
+import 'package:rssreader/models/articles.dart';
 
-  ArticlePage(this.url, this.title);
+
+class ArticlePage extends StatefulWidget {
+  final Article article;
+
+  ArticlePage(this.article);
+
+  @override
+  ArticlePageState createState() {
+    return ArticlePageState(article);
+  }
+}
+
+class ArticlePageState extends State<ArticlePage> {
+  Article article;
+
+  ArticlePageState(this.article);
 
   @override
   Widget build(BuildContext context) {
 
     return WebviewScaffold(
-      url: url,
+      url: article.link,
       withJavascript: false,
       appBar: AppBar(
-        title: Text(title),
+        title: Text(article.title),
         actions: [
           IconButton(
             icon: const Icon(Icons.share),
             onPressed: () {
-              Share.share(url);
+              Share.share(article.link);
             },
           ),
           IconButton(
             icon: const Icon(Icons.launch),
             onPressed: () {
-              launch(url);
+              launch(article.link);
             },
           ),
+          IconButton(
+            icon: Icon(article.isSaved ? Icons.favorite : Icons.favorite_border),
+            onPressed: () {
+              Articles articlesProvider = Provider.of<Articles>(context, listen: false);
+              setState(() {
+                article.isSaved = !article.isSaved;
+              });
+              if (article.isSaved) {
+                articlesProvider.add(article);
+              } else {
+                articlesProvider.remove(article);
+              }
+            },
+          )
         ],
       ),
     );
