@@ -47,7 +47,7 @@ class ArticlesListView extends StatelessWidget {
             Text(article.getDateDurationString()),
           ];
           if (article.isSaved) {
-            trailingWidgets.insert(0, Icon(Icons.favorite));
+            trailingWidgets.add(Icon(Icons.favorite));
           }
 
           return ListTile(
@@ -55,6 +55,7 @@ class ArticlesListView extends StatelessWidget {
             title: Text(article.title),
             subtitle: Text(article.feedTitle),
             trailing: Wrap(
+              direction: Axis.vertical,
               spacing: 5,
               crossAxisAlignment: WrapCrossAlignment.center,
               children: trailingWidgets,
