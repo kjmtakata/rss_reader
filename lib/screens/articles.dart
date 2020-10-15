@@ -9,7 +9,7 @@ import 'package:rssreader/screens/feeds.dart';
 
 class ArticlesListView extends StatelessWidget {
   final RefreshController _refreshController =
-    RefreshController(initialRefresh: true);
+      RefreshController(initialRefresh: true);
   final String filter;
 
   ArticlesListView(this.filter);
@@ -18,15 +18,16 @@ class ArticlesListView extends StatelessWidget {
   Widget build(BuildContext context) {
     Articles articlesProvider = Provider.of<Articles>(context);
     List<Article> articles = articlesProvider.articles;
-    articles = articles.where((article) =>
-        article.title.toLowerCase().contains(filter.toLowerCase())
-    ).toList();
+    articles = articles
+        .where((article) =>
+            article.title.toLowerCase().contains(filter.toLowerCase()))
+        .toList();
 
     return SmartRefresher(
       enablePullDown: true,
       controller: _refreshController,
-      onRefresh: () {
-        Provider.of<Articles>(context, listen: false).load(context);
+      onRefresh: () async {
+        await Provider.of<Articles>(context, listen: false).load(context);
         _refreshController.refreshCompleted();
       },
       child: ListView.builder(
@@ -119,7 +120,6 @@ class ArticlesSearch extends SearchDelegate {
   Widget buildSuggestions(BuildContext context) {
     return buildResults(context);
   }
-  
 }
 
 class ArticlesPage extends StatefulWidget {
