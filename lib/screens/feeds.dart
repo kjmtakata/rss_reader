@@ -10,6 +10,7 @@ import 'package:webfeed/webfeed.dart';
 import 'package:rssreader/models/feed.dart';
 import 'package:rssreader/models/feed_search_response.dart';
 import 'package:rssreader/models/feeds.dart';
+import 'package:rssreader/screens/articles.dart';
 
 enum FeedAction { delete }
 
@@ -36,6 +37,14 @@ class FeedsPageState extends State<FeedsPage> {
             Feed feed = feeds.getByPosition(i);
             return ListTile(
               title: Text(feed.title),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ArticlesPage(feed),
+                  ),
+                );
+              },
               trailing: PopupMenuButton(
                 itemBuilder: (_) => <PopupMenuItem<FeedAction>>[
                   new PopupMenuItem<FeedAction>(

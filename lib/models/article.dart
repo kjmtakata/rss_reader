@@ -6,14 +6,16 @@ class Article {
   String imageUrl;
   DateTime date; // local time
   String feedTitle;
+  String feedUrl;
   bool isSaved = false;
 
-  Article(String title, String link, String imageUrl,
-      String date, String feedTitle) {
+  Article(String title, String link, String imageUrl, String date,
+      String feedTitle, String feedUrl) {
     this.title = title;
     this.link = link;
     this.imageUrl = imageUrl;
     this.feedTitle = feedTitle;
+    this.feedUrl = feedUrl;
 
     DateFormat dateFormat = new DateFormat("EEE, dd MMM yyyy HH:mm:ss");
     this.date = dateFormat.parseUTC(date);
@@ -48,19 +50,20 @@ class Article {
   }
 
   Article.fromJson(Map<String, dynamic> json)
-    : title = json['title'],
-      link = json['link'],
-      imageUrl = json['image_url'],
-      date = DateTime.parse(json['date']),
-      feedTitle = json['feed_title'],
-      isSaved = true;
+      : title = json['title'],
+        link = json['link'],
+        imageUrl = json['image_url'],
+        date = DateTime.parse(json['date']),
+        feedTitle = json['feed_title'],
+        feedUrl = json['feed_url'],
+        isSaved = true;
 
-  Map<String, dynamic> toJson() =>
-  {
-    'title': title,
-    'link': link,
-    'image_url': imageUrl,
-    'date': date.toString(),
-    'feed_title': feedTitle,
-  };
+  Map<String, dynamic> toJson() => {
+        'title': title,
+        'link': link,
+        'image_url': imageUrl,
+        'date': date.toString(),
+        'feed_title': feedTitle,
+        'feed_url': feedUrl,
+      };
 }

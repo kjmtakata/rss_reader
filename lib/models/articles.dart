@@ -11,7 +11,6 @@ import 'package:rssreader/models/article.dart';
 import 'package:rssreader/models/feed.dart';
 import 'package:rssreader/models/feeds.dart';
 
-
 class Articles extends ChangeNotifier {
   static final String savedArticlesKey = "saved_articles";
   List<Article> savedArticles = [];
@@ -37,15 +36,17 @@ class Articles extends ChangeNotifier {
       http.Response response = await http.get(feed.url);
       RssFeed rssFeed = RssFeed.parse(utf8.decode(response.bodyBytes));
       rssFeed.items.forEach((element) {
-        if (!savedArticles.any((savedArticle) =>
-            savedArticle.link == element.link)) {
+        if (!savedArticles
+            .any((savedArticle) => savedArticle.link == element.link)) {
           Article article = Article(
             element.title,
             element.link,
-            element.media?.contents != null && element.media.contents.isNotEmpty ?
-            element.media.contents[0].url : null,
+            element.media?.contents != null && element.media.contents.isNotEmpty
+                ? element.media.contents[0].url
+                : null,
             element.pubDate,
             feed.title,
+            feed.url,
           );
           articles.add(article);
         }
