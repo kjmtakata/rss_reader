@@ -4,6 +4,7 @@ import 'package:pull_to_refresh/pull_to_refresh.dart';
 
 import 'package:rssreader/models/article.dart';
 import 'package:rssreader/models/articles.dart';
+import 'package:rssreader/models/feed.dart';
 import 'package:rssreader/screens/article.dart';
 import 'package:rssreader/screens/feeds.dart';
 
@@ -11,8 +12,9 @@ class ArticlesListView extends StatelessWidget {
   final RefreshController _refreshController =
       RefreshController(initialRefresh: true);
   final String filter;
+  final String feedUrl;
 
-  ArticlesListView(this.filter);
+  ArticlesListView(this.filter, this.feedUrl);
 
   @override
   Widget build(BuildContext context) {
@@ -22,6 +24,11 @@ class ArticlesListView extends StatelessWidget {
         .where((article) =>
             article.title.toLowerCase().contains(filter.toLowerCase()))
         .toList();
+
+    if (this.feedUrl != null) {
+      articles =
+          articles.where((article) => article.feedUrl == this.feedUrl).toList();
+    }
 
     return SmartRefresher(
       enablePullDown: true,
@@ -84,6 +91,10 @@ class ArticlesListView extends StatelessWidget {
 }
 
 class ArticlesSearch extends SearchDelegate {
+  final String feedUrl;
+
+  ArticlesSearch(this.feedUrl);
+
   @override
   ThemeData appBarTheme(BuildContext context) {
     return Theme.of(context);
@@ -113,7 +124,7 @@ class ArticlesSearch extends SearchDelegate {
 
   @override
   Widget buildResults(BuildContext context) {
-    return ArticlesListView(query);
+    return ArticlesListView(query, this.feedUrl);
   }
 
   @override
@@ -123,31 +134,42 @@ class ArticlesSearch extends SearchDelegate {
 }
 
 class ArticlesPage extends StatefulWidget {
+  final Feed feed;
+
+  ArticlesPage(this.feed);
+
   @override
   ArticlesPageState createState() {
-    return ArticlesPageState();
+    return ArticlesPageState(feed);
   }
 }
 
 class ArticlesPageState extends State<ArticlesPage> {
+  final Feed feed;
+
+  ArticlesPageState(this.feed);
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Articles"),
+        title: Text(this.feed != null ? feed.title : "Articles"),
         actions: [
           IconButton(
             icon: const Icon(Icons.search),
             onPressed: () {
-              showSearch(context: context, delegate: ArticlesSearch());
+              showSearch(
+                  context: context, delegate: ArticlesSearch(this.feed?.url));
             },
           )
         ],
       ),
-      drawer: Drawer(
-        child: FeedsPage(),
-      ),
-      body: ArticlesListView(""),
+      drawer: this.feed == null
+          ? Drawer(
+              child: FeedsPage(),
+            )
+          : null,
+      body: ArticlesListView("", this.feed?.url),
     );
   }
 }
